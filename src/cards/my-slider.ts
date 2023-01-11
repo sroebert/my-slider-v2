@@ -54,7 +54,6 @@ export class MySliderV2 extends LitElement {
     private touchInput: Boolean = false
     private disableScroll: Boolean = true
     private allowTapping: Boolean = true
-    private thumbTapped: Boolean = false
     private actionTaken: Boolean = false
     private vertical: Boolean = false
     private flipped: Boolean = false
@@ -225,39 +224,49 @@ export class MySliderV2 extends LitElement {
         }
 
         const startInput = (event) => {
-            if (this.actionTaken) return
+            if (this.actionTaken) {
+                return
+            }
+            
             setElements(event)
+            if (!this.sliderEl) {
+                return
+            }
 
-            if (this.allowTapping) {
-                this.actionTaken = true
-                this.calcProgress(event)
+            const thumbEl = this.sliderEl.querySelector('.my-slider-custom-thumb')
+            if (!thumbEl) {
+                return
             }
-            else {
-                if (event.path[0].classList.contains('my-slider-custom-thumb')) {
-                    this.thumbTapped = true
-                    this.actionTaken = true
-                    this.calcProgress(event)
-                } // else: tapping not allowed
+
+            const thumbWidth = thumbEl.getBoundingClientRect().width
+            const relativeTapPosition = getClickPosRelToTarget(event, thumbEl)
+            const outsideTapArea = (Math.max(thumbWidth, 60) - thumbWidth) / 2
+
+            if (!this.allowTapping && (relativeTapPosition.x < -outsideTapArea || relativeTapPosition.x > thumbWidth + outsideTapArea)) {
+                return
             }
+
+            this.actionTaken = true
+            this.calcProgress(event)
         }
 
         const stopInput = (event) => {
-            if (!this.actionTaken) return
-            if (this.allowTapping) {
-                this.calcProgress(event)
+            if (!this.actionTaken) {
+                return
             }
-            else if (this.thumbTapped) {
-                this.calcProgress(event)
-            }
-            this.thumbTapped = false
+
+            this.calcProgress(event)
+            
             this.actionTaken = false
             this.touchInput = false
         }
 
-        const moveInput = event => {
-            if (this.actionTaken) {
-                this.calcProgress(event)
+        const moveInput = (event) => {
+            if (!this.actionTaken) {
+                return
             }
+
+            this.calcProgress(event)
         }
 
         this.createAndCleanupEventListeners(sliderHandler)
