@@ -136,12 +136,14 @@ export class MySliderV2 extends LitElement {
         const deflatedTrackStl = deflate(this._config!.styles?.track) ? deflate(this._config!.styles?.track) : {}
         const deflatedProgressStl = deflate(this._config!.styles?.progress) ? deflate(this._config!.styles?.progress) : {}
         const deflatedThumbStl = deflate(this._config!.styles?.thumb) ? deflate(this._config!.styles?.thumb) : {}
+        const deflatedValueStl = deflate(this._config!.styles?.value) ? deflate(this._config!.styles?.value) : {}
         // ---------- Styles ---------- //
         const cardStl = getStyle('card', deflatedCardStl)
         const containerStl = getStyle('container', deflatedContainerStl)
         const trackStl = getStyle('track', deflatedTrackStl)
         const progressStl = getStyle('progress', deflatedProgressStl)
         const thumbStl = getStyle('thumb', deflatedThumbStl)
+        const valueStl = getStyle('value', deflatedValueStl)
 
         if (this.vertical) {
             progressStl.height = this.sliderValPercent.toString() + '%'
@@ -154,6 +156,18 @@ export class MySliderV2 extends LitElement {
             thumbStl.right = deflatedThumbStl.right ? deflatedThumbStl : 'auto'
             thumbStl.width = deflatedThumbStl.width ? deflatedThumbStl.width : '100%'
             thumbStl.height = deflatedThumbStl.height ? deflatedThumbStl.height : '10px'
+
+            if (valueStl.height && thumbStl.height) {
+                valueStl.top = `calc((-${valueStl.height} / 2) + (${thumbStl.height} / 2))`
+            } else {
+                valueStl.top = "0"
+            }
+
+            if (valueStl.width) {
+                valueStl.right = `calc(${valueStl.width} - 4px)`
+            } else {
+                valueStl.right = '-100%'
+            }
 
             if (this.flipped) {
                 progressStl.top = deflatedProgressStl.top ? deflatedProgressStl.top : '0'
@@ -171,7 +185,21 @@ export class MySliderV2 extends LitElement {
                 thumbStl.right = deflatedThumbStl.right ? deflatedThumbStl.right : 'auto'
                 thumbStl.left = deflatedThumbStl.left ? deflatedThumbStl.left : '-5px'
             }
+
+            if (valueStl.width && thumbStl.width) {
+                valueStl.left = `calc((-${valueStl.width} / 2) + (${thumbStl.width} / 2))`
+            } else {
+                valueStl.left = "0"
+            }
+
+            if (valueStl.height) {
+                valueStl.top = `calc(-${valueStl.height} - 4px)`
+            } else {
+                valueStl.top = '-100%'
+            }
         }
+
+        valueStl.opacity = '0'
 
         const setElements = (event) => {
             const sliderMaybe = event.composedPath().find(el => el.classList.contains('my-slider-custom-container'))
@@ -233,16 +261,23 @@ export class MySliderV2 extends LitElement {
                 return
             }
 
-            const thumbEl = this.sliderEl.querySelector('.my-slider-custom-thumb')
-            if (!thumbEl) {
+            const thumbEl: HTMLElement | null = this.sliderEl.querySelector('.my-slider-custom-thumb')
+            const valueEl: HTMLElement | null = this.sliderEl.querySelector('.my-slider-custom-value')
+            if (!thumbEl || !valueEl) {
                 return
             }
 
-            const thumbWidth = thumbEl.getBoundingClientRect().width
-            const relativeTapPosition = getClickPosRelToTarget(event, thumbEl)
-            const outsideTapArea = (Math.max(thumbWidth, 60) - thumbWidth) / 2
+            valueEl.style.opacity = '1'
 
-            if (!this.allowTapping && (relativeTapPosition.x < -outsideTapArea || relativeTapPosition.x > thumbWidth + outsideTapArea)) {
+            const thumbRect = thumbEl.getBoundingClientRect()
+            const relativeTapPosition = getClickPosRelToTarget(event, thumbEl)
+            const outsideTapAreaX = (Math.max(thumbRect.width, 60) - thumbRect.width) / 2
+            const outsideTapAreaY = (Math.max(thumbRect.height, 60) - thumbRect.height) / 2
+
+            if (!this.allowTapping &&
+                (relativeTapPosition.x < -outsideTapAreaX || relativeTapPosition.x > thumbRect.width + outsideTapAreaX ||
+                 relativeTapPosition.y < -outsideTapAreaY || relativeTapPosition.y > thumbRect.height + outsideTapAreaY)
+            ) {
                 return
             }
 
@@ -253,6 +288,13 @@ export class MySliderV2 extends LitElement {
         const stopInput = (event) => {
             if (!this.actionTaken) {
                 return
+            }
+
+            if (this.sliderEl) {
+                const valueEl: HTMLElement | null = this.sliderEl.querySelector('.my-slider-custom-value')
+                if (valueEl) {
+                    valueEl.style.opacity = '0'
+                }
             }
 
             this.calcProgress(event)
@@ -283,7 +325,10 @@ export class MySliderV2 extends LitElement {
                 >
                     <div class="my-slider-custom-track" style="${styleMap(trackStl)}">
                         <div class="my-slider-custom-progress" style="${styleMap(progressStl)}">
-                            <div class="my-slider-custom-thumb" style="${styleMap(thumbStl)}"></div>
+                            <div class="my-slider-custom-thumb" style="${styleMap(thumbStl)}">
+                                <div class="my-slider-custom-value" style="${styleMap(valueStl)}">
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -493,6 +538,7 @@ export class MySliderV2 extends LitElement {
 
     private setProgress(slider, val, action) {
         const progressEl = slider.querySelector('.my-slider-custom-progress')
+        const valueEl = slider.querySelector('.my-slider-custom-value')
         const valuePercentage = roundPercentage(percentage(val, this.max))
         if (this.vertical) {
             // Set progessHeight to match value
@@ -502,6 +548,15 @@ export class MySliderV2 extends LitElement {
             // Set progessWidth to match value
             progressEl.style.width = valuePercentage.toString() + '%'
         }
+
+        let displayVal = val
+        if (!this.showMin) {
+            displayVal = displayVal + this.min
+        }
+        if (this.inverse) {
+            displayVal = this.max - displayVal
+        }
+        valueEl.innerText = String(displayVal)
 
         // Check if value has changed
         if (this.sliderVal !== val) {
