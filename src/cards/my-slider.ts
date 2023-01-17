@@ -235,8 +235,6 @@ export class MySliderV2 extends LitElement {
                     break
 
                 case 'touchmove':
-                    if (this.disableScroll)
-                        event.preventDefault()
                     // if (this.actionTaken)
                     //     console.log('TOUCH MOVE:', event)
 
@@ -306,6 +304,10 @@ export class MySliderV2 extends LitElement {
         const moveInput = (event) => {
             if (!this.actionTaken) {
                 return
+            }
+
+            if (this.disableScroll) {
+                event.preventDefault()
             }
 
             this.calcProgress(event)
