@@ -265,8 +265,6 @@ export class MySliderV2 extends LitElement {
                 return
             }
 
-            valueEl.style.opacity = '1'
-
             const thumbRect = thumbEl.getBoundingClientRect()
             const relativeTapPosition = getClickPosRelToTarget(event, thumbEl)
             const outsideTapAreaX = (Math.max(thumbRect.width, 60) - thumbRect.width) / 2
@@ -280,6 +278,8 @@ export class MySliderV2 extends LitElement {
             }
 
             this.actionTaken = true
+            valueEl.style.opacity = '1'
+            
             this.calcProgress(event)
         }
 
